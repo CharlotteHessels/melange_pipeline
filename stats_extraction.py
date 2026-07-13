@@ -1,4 +1,5 @@
 import rasterio
+import json
 import numpy as np
 from rasterio.windows import Window
 import matplotlib.pyplot as plt
@@ -7,7 +8,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-def plot_violins_all_new(data, file_name, plot_title, location_dict, packing_fraction, volume):
+def plot_violins_all_new(data, file_name, plot_title, packing_fraction, volume):
     # Remove rows/cols that are entirely nan
     valid_rows = ~np.all(np.isnan(data), axis=1)
     valid_cols = ~np.all(np.isnan(data), axis=0)
@@ -64,9 +65,8 @@ def plot_violins_all_new(data, file_name, plot_title, location_dict, packing_fra
     # Bottom statistics axis
     ax_stats = fig.add_subplot(gs[2, :])
     
-    location = next((key for key, values in location_dict.items() if file_name in values), None)
     fig.suptitle(
-        file_name + ' - ' + location,
+        file_name,
         fontsize=18,
         fontweight='bold',
         y=0.95
@@ -220,7 +220,7 @@ def plot_violins_all_new(data, file_name, plot_title, location_dict, packing_fra
     )
 
     plt.close()
-    print('Saved figure')
+    print('Saved figure to ./results/figures/' + file_name +'_violins.png')
 
     
 def get_file_details(file, window_size):
@@ -344,6 +344,22 @@ def get_window_stats(file, height, width, n_rows, n_cols, win_size, min_valid_fr
                 stats['std'][i, j] = values.std()
     return stats
 
+def save_iceberg_stats(stats_file, packing_fraction, mean_ice_detected, file_name):
+    stats_file = Path(stats_file)
+    
+    if not stats_file.exists() or stats_file.stat().st_size == 0:
+        all_stats = {}
+    else:
+        with open(stats_file, "r") as f:
+            all_stats = json.load(f)
+
+    mean_ice_detected = {key: int(value) for key, value in mean_ice_detected.items()}
+
+    all_stats[file_name] = {'packing_fraction':packing_fraction, 'ice':mean_ice_detected}
+
+    with open(stats_file, "w") as f:
+        json.dump(all_stats, f, indent=4)
+    print('Updated ' + str(stats_file) +' with detected ice and packing fraction of flight ' + file_name)
 
     
 def extract_statistics(cleaned_dsm_path, file_name, window_size):
@@ -351,17 +367,6 @@ def extract_statistics(cleaned_dsm_path, file_name, window_size):
 
     input_file = Path(cleaned_dsm_path)
     
-
-    locations_dict = {
-        'Melville':['25_03_2023_flight2','25_03_2023_flight1', '31_03_2022_flight3', 'A31_03_2022_flight3'],
-        'Farquhar':['26_03_2023_flight1','31_03_2022_flight1', 'A31_03_2022_flight1'],
-        'North Tracy':['26_03_2023_flight2','A26_03_2023_flight2'],
-        'South Tracy':['13_04_2024_flight1','13_04_2024_flight2'],
-        'North-west Tracy':['30_03_2022_flight3','30_03_2022_flight4','A30_03_2022_flight3','A30_03_2022_flight4' ],
-        'South-west Tracy':['27_03_2023_flight1'],
-        'Camp':['28_03_2023_flight1','27_03_2023_flight4', '27_03_2023_flight3', '27_03_2023_flight2', '31_03_2022_flight2','A31_03_2022_flight2'],
-        'Denmark':['21_05_2026_flight1','21_05_2026_flight2']
-    }
 
     height, width, n_rows, n_cols, window_pixels = get_file_details(input_file, window_size)
     stats = get_window_stats(input_file, height, width, n_rows, n_cols, window_pixels, min_valid_fraction)
@@ -374,14 +379,8 @@ def extract_statistics(cleaned_dsm_path, file_name, window_size):
     median_grid = stats['median']
 
     mean_ice_detected, size_ratio, packing_fraction = iceberg_detection_simple(mean_grid)
-    #todo: check if the iceberg stats file exists, if not make it, if yes then update it
-    #iceberg_stats.update({file_name:[packing_fraction, mean_ice_detected]})
+    save_iceberg_stats('./results/iceberg_stats.json', packing_fraction, mean_ice_detected, file_name)
     
     volume, area = calculate_volume(mean_grid, window_size)
     plot_violins_all_new(mean_grid, file_name, 
-                         'Mean elevation (m) per window (' + str(window_size) + 'x' + str(window_size) +'m)', 
-                         locations_dict, packing_fraction, volume)
-    
-    #file = open('./stats/iceberg_stats.txt','wt')
-    #file.write(str(iceberg_stats))
-    #file.close()
+                         'Mean elevation (m) per window (' + str(window_size) + 'x' + str(window_size) +'m)', packing_fraction, volume)
