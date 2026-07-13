@@ -8,7 +8,8 @@ method = can be either 'odm', which indicates that raw images need to be process
 --image_path = optional argument which is needed when using the odm method, points to the path with the images that need to be processed
 
 ## Example use
-python3 run_pipeline.py filename arcticdem
+python3 run_pipeline.py filename arcticdem 
+
 python3 run_pipeline.py filename odm --image_path=/image/location
 
 The arcticdem files need to be placed in a folder at the same location as the code, named 'arcicdem'. 
