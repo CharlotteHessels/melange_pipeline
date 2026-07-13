@@ -3,8 +3,10 @@ Use run_pipeline.py to extract mélange statistics from raw images or an exisiti
 To run the file, the following arguments are needed:
 
 filename = name of the drone flight or location, preferably including year and date
+
 method = can be either 'odm', which indicates that raw images need to be processed to a dsm or that a dsm from images needs to be cleaned,
          or 'arcticdem', which indicates that a tif file from arcticdem exists that needs to be processed
+         
 --image_path = optional argument which is needed when using the odm method, points to the path with the images that need to be processed
 
 ## Example use
