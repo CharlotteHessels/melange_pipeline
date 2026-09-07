@@ -11,6 +11,7 @@ parser = argparse.ArgumentParser(description = 'Extract statistics from existing
 parser.add_argument('filename', help='Name of the file to process.')
 parser.add_argument('method', choices=['arcticdem','odm'], help = 'Use existing ArcticDEM file (arcticdem) or process raw images using pyODM (odm).')
 parser.add_argument('--image_path', help = 'Path to the raw images that need processing using pyODM.')
+parser.add_argument('--mask_path', help = 'Optional path to the mask file to be used for all images.')
 
 args = parser.parse_args()
 
@@ -23,7 +24,7 @@ if args.method == 'odm':
         # if the image path was not given, throw error message
         if args.image_path is None:
             parser.error("--image_path is required when using ODM processing.")
-        dsm_path = create_dsm(args.image_path)
+        dsm_path = create_dsm_using_pyodm(args.image_path, args.filename, args.mask_path)
     cleaned_dsm_path = preprocess_dsm(dsm_path, args.filename)
 elif args.method == 'arcticdem':
     cleaned_dsm_path = Path('./arcticdem/' + args.filename + '.tif')
